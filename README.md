@@ -193,6 +193,10 @@ Everything lives inside your session only, and you download your own certificate
 You own all your data.
 
 
+our landing page 
+
+<img width="1377" height="887" alt="landing" src="https://github.com/user-attachments/assets/3448f9af-e508-42fa-8aaf-814b89e32133" />
+
 
 ❤️ Want to Support?
 
