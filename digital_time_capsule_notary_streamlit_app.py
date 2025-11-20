@@ -170,6 +170,4 @@ elif page == "Profile":
 
             st.write("---")
 
-    """,
-    unsafe_allow_html=True,
 )
