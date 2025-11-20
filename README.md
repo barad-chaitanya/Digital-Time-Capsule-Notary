@@ -1,168 +1,191 @@
-# 🔒 Digital Notary  
-### A Modern Time-Locked Document Verification System
+🔒 Digital Notary
+A simple, beautiful, and secure way to seal your words, ideas, and memories.
+🧾 What is Digital Notary?
 
----
+Digital Notary is a project built to help people prove that a document existed at a certain moment in time — without storing the document anywhere or exposing its contents.
 
-## 🧾 Overview
+It lets you:
 
-**Digital Notary** is a secure, premium, Stripe-inspired platform that allows users to seal documents using cryptographic hashing, time-lock them for future verification, and generate password-protected certificates.
+Verify your identity (simple KYC)
 
-It features:
+Seal any message or document using SHA-256 hashing
 
-- Identity Verification (KYC)
-- SHA-256 document sealing
-- Password-protected PDF certificate generation
-- Time-lock based release system
-- Integrity verification
-- A personal profile dashboard
-- Modern, animated Stripe-style UI with glassmorphism
+Time-lock it so it can only be verified in the future
 
----
+Download a password-protected certificate
 
-## 🎯 Why This Project Was Created
+Check authenticity later
 
-This project was built to solve an important challenge:
+View everything you’ve sealed in a clean profile dashboard
 
-**“How can someone prove a document existed earlier without exposing the document itself?”**
+Everything happens on your device, nothing is uploaded, and the app uses a simple, premium Stripe-inspired UI with animated gradients and glass effects.
 
-Digital Notary provides a private, secure, and elegant solution for:
+🎯 Why I Created This
 
-- Predictions
-- Inventions or intellectual property
-- Digital wills or agreements
-- Secure time capsules
-- Confidential future reveals
-- Timestamped proofs
+I built Digital Notary because I wanted something:
 
-This app helps users:
+Private
 
-- Create cryptographic proof without storing documents online  
-- Lock documents until a chosen future date  
-- Prove content integrity anytime  
-- Generate a PDF certificate for safe storage  
+Simple
 
-You own your content.  
-You control the evidence.  
-No files ever leave your device.
+And actually useful
 
----
+Something that lets you prove your words today, for tomorrow, without handing over your personal thoughts to a server or a big company.
 
-## 🧩 How It Works
+Maybe you want to record:
 
-### 1. Identity Verification (KYC)
-User enters a name to simulate a verified identity.
+A prediction
 
-### 2. Seal Document
-- User enters document text.
-- The system creates a **SHA-256 hash** (document fingerprint).
-- User sets a future **release date**.
-- User receives a **password-protected PDF certificate** (password = hash).
-- Document hash + metadata is stored temporarily in session.
+A promise
 
-### 3. Verify Document
-- User enters the hash + the document text.
-- System recomputes SHA-256 and validates match.
-- Checks if the time-lock (release date) has expired.
-- Confirms whether the document is original or tampered.
+An idea you don’t want stolen
 
-### 4. Profile
-Shows all documents sealed during the session with:
-- Hash  
-- Signer  
-- Seal date  
-- Release date  
-- Original content (never uploaded to any server)
+A personal note
 
----
+A message for your future self
 
-## 👨‍💻 Contributors
+Something only you should reveal later
 
-| Name | Contribution |
-|------|-------------|
-| **Chaitanya** | Core idea, UI direction, project vision |
-| **Aarsh** | Development support, logical structure |
-| **Harsh** | UI improvements, testing, feedback |
+I wanted a tool that makes this easy, secure, and beautiful to use.
 
-Your teamwork made this app premium, functional, and polished.
+So I built one.
 
----
+🧩 How It Works (Simple Version)
+1. You verify your name
 
-## 🚀 Features
+Just a quick KYC name field — no real identity checks.
 
-- Animated Stripe gradient background  
-- Glassmorphism UI (premium card container)  
-- Modern Inter font  
-- SHA-256 hashing  
-- Time-locked documents  
-- Password-protected PDF certificates  
-- Identity verification  
-- Integrity checking  
-- Profile dashboard  
-- Fully private (no backend database needed)  
+2. You write a document
 
----
+Could be anything: a secret, a memory, an idea, a promise.
 
-## 🛠 Tech Stack
+3. The app creates a SHA-256 hash
 
-- Python  
-- Streamlit  
-- PyPDF2  
-- SHA-256 cryptographic hashing  
-- HTML + CSS for animations and effects  
+This is like a fingerprint of your document —
+unique, permanent, and impossible to fake.
 
----
+4. You pick a release date
 
-## 📦 Installation
+Until then, your document stays “time-locked.”
 
-### 1. Clone the repository
-```bash
+5. You get a certificate
+
+A PDF file that is protected using your document’s hash as the password.
+
+6. Later, you verify it
+
+Paste the original text again and the app will confirm if it’s a perfect match.
+
+7. Everything stays on your device
+
+No servers, no databases, no leakable files.
+
+👨‍💻 The People Behind This Project
+
+A project feels empty without people.
+So here’s everyone who contributed to building it:
+
+Chaitanya
+
+Core idea, design direction, vision of how the UI and experience should feel.
+
+Aarsh
+
+Helped shape the logic, fixed issues, and improved the core workflow.
+
+Harsh
+
+Improved UI details, tested features, and made the experience smoother.
+
+This project exists because of everyone above — their ideas, time, and effort.
+
+🚀 Features
+
+Stripe-like animated gradient background
+
+Glassmorphism premium UI
+
+Clean Inter font
+
+KYC (simple name verification)
+
+SHA-256 document sealing
+
+Time-lock system
+
+Password-protected PDF certificates
+
+Integrity verification
+
+Profile dashboard
+
+Fully private — nothing stored online
+
+🛠 Tech It Uses
+
+Python
+
+Streamlit
+
+PyPDF2
+
+SHA-256 hashing
+
+Custom HTML/CSS for animations
+
+📦 How to Install
+
+Clone the project
+
 git clone https://github.com/yourusername/digital-notary.git
 cd digital-notary
-```
 
-### 2. Install required packages
-```bash
+
+Install dependencies
+
 pip install -r requirements.txt
-```
 
-### 3. Run the app
-```bash
+
+Run the app
+
 streamlit run app.py
-```
 
----
+🌐 Deploying on Streamlit Cloud
 
-## 🌐 Deploying on Streamlit Cloud
+It works perfectly on Streamlit’s free hosting.
 
-1. Push the project to GitHub  
-2. Go to: https://share.streamlit.io  
-3. Select your repository  
-4. Deploy  
+Just push it to GitHub
+→ Connect it on Streamlit Cloud
+→ Deploy
+→ Done.
 
-The app is fully compatible with Streamlit Community Cloud.
+🛡 Privacy & Safety
 
----
+This app does not save:
 
-## 🛡 Security Notice
+Your documents
 
-- No document data is uploaded or stored externally  
-- All text is processed locally in the user session  
-- Only cryptographic hashes are used  
-- The PDF certificate is protected with SHA-256 hash  
-- User must save their certificate (it is not stored)
+Your certificates
 
-Digital Notary prioritizes privacy and client-side trust.
+Your hash
 
----
+Your identity
 
-## ❤️ Support
+Anything to any database
 
-If you like this project:
+Everything lives inside your session only, and you download your own certificate.
+You own all your data.
 
-- ⭐ Star the repository  
-- 🐛 Report bugs  
-- 💡 Suggest improvements  
-- 🤝 Contribute to the project  
+❤️ Want to Support?
 
----
+If you find this tool useful or inspiring:
 
+Give it a ⭐ on GitHub
+
+Report bugs
+
+Suggest ideas
+
+Or contribute
+
+It’s a small project but built with a lot of thought and care.
