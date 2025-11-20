@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: digital-notary-landing
+    env: static
+    staticPublishPath: ./
+    buildCommand: ""
