@@ -1,4 +1,4 @@
-# app.py - Digital Notary (Certificate using fpdf2 + pypdf encryption)
+# app.py — Digital Notary (Stripe-gradient + Outline Buttons + Encrypted PDF certificates)
 import streamlit as st
 import sqlite3
 import hashlib
@@ -59,7 +59,7 @@ def save_document(hash_val: str, content: str, user: str, release_iso: str) -> b
 def fetch_document(hash_val: str) -> Optional[Tuple]:
     conn = get_conn()
     c = conn.cursor()
-    c.execute("SELECT * FROM documents WHERE hash=?", (hash_val,))
+    c.execute("SELECT hash, content, user, seal_date, release_date FROM documents WHERE hash=?", (hash_val,))
     row = c.fetchone()
     conn.close()
     return row
@@ -91,7 +91,7 @@ if "page" not in st.session_state:
     st.session_state.page = "KYC"
 
 # ---------------------------
-# CSS / Header
+# CSS / Header (Stripe gradient + outline buttons)
 # ---------------------------
 st.markdown(
     """
@@ -99,16 +99,18 @@ st.markdown(
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
     html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
 
-    .gradient-hero {
-        background: linear-gradient(135deg,#07102a 0%, #3b2dfd 45%, #b46bff 100%);
-        padding: 30px 18px;
+    /* Full app gradient background */
+    body {
+        background: linear-gradient(135deg, #0A0F2D 0%, #3B2DFD 50%, #D96FFF 100%) !important;
+    }
+
+    .hero {
+        padding: 28px 18px;
         border-radius: 12px;
         color: white;
         text-align: center;
-        box-shadow: 0 18px 60px rgba(12,18,35,0.55);
         margin-bottom: 18px;
     }
-    .nav-row { display:flex; justify-content:center; gap:10px; margin: 12px 0 18px 0; }
 
     .card {
         background: rgba(255,255,255,0.96);
@@ -117,28 +119,48 @@ st.markdown(
         box-shadow: 0 8px 28px rgba(8,10,20,0.06);
         border: 1px solid rgba(16,24,40,0.03);
         transition: transform 200ms ease, box-shadow 200ms ease;
+        color: #041227;
     }
     .card:hover { transform: translateY(-6px); box-shadow: 0 18px 48px rgba(8,10,20,0.10); }
 
-    .muted { color: #6b7280; font-size:13px; }
+    .nav-row { display:flex; justify-content:center; gap:10px; margin: 12px 0 18px 0; }
 
+    /* Outline (transparent) buttons with white border for nav */
     .stButton>button {
-        background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03)) !important;
-        color: #041227 !important;
-        border: 1px solid rgba(0,0,0,0.06) !important;
-        padding: 8px 18px !important;
+        background: transparent !important;
+        color: white !important;
+        padding: 10px 18px !important;
         border-radius: 8px !important;
+        border: 1px solid rgba(255,255,255,0.85) !important;
         font-weight: 600 !important;
+        transition: transform 0.15s ease, background 0.15s ease !important;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.12) !important;
     }
-    .stButton>button:hover { transform: translateY(-3px) !important; box-shadow: 0 12px 36px rgba(59,47,129,0.15) !important; }
+    .stButton>button:hover {
+        transform: translateY(-3px) !important;
+        background: rgba(255,255,255,0.06) !important;
+    }
+
+    /* Small muted text */
+    .muted { color: rgba(4,18,39,0.6); font-size:13px; }
+
+    pre.code {
+        background: #0b1220;
+        color: #e6f2ff;
+        padding: 10px;
+        border-radius: 8px;
+        overflow-x: auto;
+    }
+
     </style>
     """,
     unsafe_allow_html=True
 )
 
+# header hero (uses white text on gradient background)
 st.markdown(
     """
-    <div class="gradient-hero">
+    <div class="hero">
         <h1 style="margin:0">Digital Notary</h1>
         <p style="margin:6px 0 0 0;">Seal • Time-lock • Verify — premium notarized certificates</p>
     </div>
@@ -147,7 +169,7 @@ st.markdown(
 )
 
 # ---------------------------
-# Top nav (five buttons)
+# Top nav (five outline buttons)
 # ---------------------------
 st.markdown("<div class='nav-row'>", unsafe_allow_html=True)
 cols = st.columns(5)
@@ -177,28 +199,27 @@ def create_certificate_pdf_bytes(hash_val: str, content: str, user: str, seal_da
     Returns encrypted PDF bytes.
     """
     # 1) Generate plain PDF with fpdf
-    pdf_buffer = io.BytesIO()
+    # Use A4-like size in points - fpdf default unit=pt works with those values if using format="A4"
     pdf = FPDF(orientation="P", unit="pt", format="A4")
     pdf.set_auto_page_break(auto=True, margin=40)
     pdf.add_page()
 
-    # Background rectangle with subtle gradient-like feel by overlapping rectangles
-    w, h = 595.28, 841.89  # A4 in points
-    # draw an accent band
-    pdf.set_fill_color(50, 35, 180)  # deep purple
-    pdf.rect(0, 0, w, 140, 'F')
+    # Header band
+    w, h = 595.28, 841.89  # A4 points
+    pdf.set_fill_color(59,45,253)  # deep purple tone
+    pdf.rect(0, 0, w, 120, 'F')
     pdf.set_xy(40, 40)
-    pdf.set_text_color(255, 255, 255)
+    pdf.set_text_color(255,255,255)
     pdf.set_font("Helvetica", style="B", size=20)
     pdf.cell(0, 10, "Digital Notary — Sealed Certificate", ln=True)
     pdf.set_font("Helvetica", size=11)
     pdf.ln(6)
-    pdf.set_text_color(245,245,245)
+    pdf.set_text_color(255,255,255)
     pdf.cell(0, 10, "Premium notarized certificate", ln=True)
 
-    # Move down and switch to dark text for body
-    pdf.set_text_color(10, 10, 10)
-    pdf.ln(26)
+    # Body
+    pdf.set_text_color(10,10,10)
+    pdf.ln(22)
     pdf.set_x(40)
     pdf.set_font("Helvetica", size=12)
     pdf.multi_cell(0, 16, f"Sealed By: {user}")
@@ -209,7 +230,6 @@ def create_certificate_pdf_bytes(hash_val: str, content: str, user: str, seal_da
     pdf.cell(0, 14, "Document SHA-256 Fingerprint:")
     pdf.ln(6)
     pdf.set_font("Courier", size=9)
-    # print hash in monospace and break it into lines
     for i in range(0, len(hash_val), 64):
         pdf.cell(0, 12, hash_val[i:i+64], ln=True)
 
@@ -223,20 +243,23 @@ def create_certificate_pdf_bytes(hash_val: str, content: str, user: str, seal_da
         preview = preview[:1000] + "..."
     pdf.multi_cell(0, 12, preview)
 
-    # Footer seal / signature area
     pdf.set_y(h - 120)
     pdf.set_font("Helvetica", size=9)
     pdf.cell(0, 10, "Digital Notary • This certificate is electronically generated.", ln=True)
 
-    pdf.output(pdf_buffer)
-    pdf_buffer.seek(0)
+    # Get PDF bytes from fpdf
+    pdf_bytes_str = pdf.output(dest='S')  # returns str in fpdf2
+    if isinstance(pdf_bytes_str, str):
+        pdf_bytes = pdf_bytes_str.encode('latin-1')
+    else:
+        pdf_bytes = pdf_bytes_str
 
-    # 2) Encrypt the PDF bytes with pypdf
-    reader = PdfReader(pdf_buffer)
+    # 2) Encrypt with pypdf
+    reader = PdfReader(io.BytesIO(pdf_bytes))
     writer = PdfWriter()
     for p in reader.pages:
         writer.add_page(p)
-    # use 128-bit encryption (default)
+    # encrypt using hash as both user and owner password (user must enter to open)
     writer.encrypt(user_password=hash_val, owner_password=hash_val, use_128bit=True)
 
     out = io.BytesIO()
@@ -284,7 +307,7 @@ elif st.session_state.page == "Home":
             st.info("No sealed documents yet.")
         else:
             for h, user, seal_date, release_date in rows:
-                st.markdown("<div style='padding:10px;border-radius:8px;margin-bottom:10px;background:rgba(250,250,250,0.96)'>", unsafe_allow_html=True)
+                st.markdown("<div class='card' style='padding:12px; margin-bottom:10px;'>", unsafe_allow_html=True)
                 st.write(f"**Hash:** `{h[:32]}...`")
                 st.write(f"Sealed by **{user}** on {datetime.fromisoformat(seal_date).strftime('%b %d, %Y')}")
                 st.write(f"<span class='muted'>Release: {datetime.fromisoformat(release_date).strftime('%b %d, %Y')}</span>", unsafe_allow_html=True)
@@ -386,4 +409,3 @@ elif st.session_state.page == "Profile":
 # Footer
 st.write("")
 st.markdown("<div class='muted' style='text-align:center;'>© {year} Digital Notary</div>".format(year=datetime.now().year), unsafe_allow_html=True)
-
