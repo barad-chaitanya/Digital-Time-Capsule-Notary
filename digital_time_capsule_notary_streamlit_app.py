@@ -1,106 +1,141 @@
 import streamlit as st
 import hashlib
 from datetime import datetime, date
-import base64
 
-# ================================
+# ---------------------------------------
 # PAGE CONFIG
-# ================================
+# ---------------------------------------
 st.set_page_config(
-    page_title="Time Capsule Notary",
-    layout="wide",
+    page_title="Time Capsule Notary | Modern UI",
+    layout="centered"
 )
 
-# ================================
-# BACKGROUND IMAGE
-# ================================
-  # replace with any bg image you want
+# ---------------------------------------
+# PREMIUM SOLID BACKGROUND + GLASS + 3D BUTTONS
+# ---------------------------------------
+st.markdown("""
+<style>
 
-def set_bg():
-    st.markdown(
-        f"""
-        <style>
-        [data-testid="stAppViewContainer"] {{
-            background: url('{bg_url}');
-            background-size: cover;
-            background-attachment: fixed;
-        }}
-        
-        /* Remove top padding */
-        .main .block-container {{
-            padding-top: 2rem;
-        }}
-        
-        /* Glass cards */
-        .glass {{
-            background: rgba(255, 255, 255, 0.13);
-            padding: 25px;
-            border-radius: 18px;
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            box-shadow: 0px 4px 30px rgba(0,0,0,0.25);
-        }}
+    /* FULL PAGE SOLID PREMIUM BACKGROUND */
+    [data-testid="stAppViewContainer"] {
+        background: linear-gradient(145deg, #0E0F11, #1A1B1E);
+        color: white;
+    }
 
-        /* Title neon glow */
-        .title-glow {{
-            font-size: 44px;
-            font-weight: 800;
-            color: #ffffff;
-            text-shadow: 0px 0px 20px rgba(0,255,255,0.9);
-            text-align: center;
-        }}
+    /* REMOVE TOP SPACING */
+    .main .block-container {
+        padding-top: 2rem;
+    }
 
-        /* Subtext */
-        .subtitle {{
-            text-align: center;
-            font-size: 18px;
-            margin-top: -10px;
-            color: #e0f7ff;
-        }}
+    /* ----- MODERN TITLE GLOW ----- */
+    .title-glow {
+        font-size: 46px;
+        font-weight: 900;
+        text-align: center;
+        background: linear-gradient(90deg,#B4E0FF,#6FBAFF,#4CC2F7);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0px 0px 25px rgba(100,170,255,0.45);
+        letter-spacing: 1px;
+    }
 
-        /* Neon buttons */
-        .stButton>button {{
-            background: linear-gradient(135deg, #00f2ff, #007bff);
-            color: black;
-            border-radius: 12px;
-            padding: 0.6rem 1.2rem;
-            border: none;
-            font-size: 17px;
-            font-weight: 600;
-            box-shadow: 0px 0px 12px rgba(0,255,255,0.7);
-            transition: 0.3s ease;
-        }}
-        .stButton>button:hover {{
-            transform: scale(1.05);
-            box-shadow: 0px 0px 20px rgba(0,255,255,1);
-        }}
+    .subtitle {
+        text-align: center;
+        color: #C9D6E8;
+        margin-top: -14px;
+        font-size: 17px;
+        opacity: 0.85;
+    }
 
-        /* Inputs glass styling */
-        textarea, input {{
-            background: rgba(255,255,255,0.3)!important;
-            backdrop-filter: blur(5px)!important;
-            border-radius: 10px!important;
-            color: white !important;
-        }}
+    /* ----- GLASS CARD WITH SHINE + DEPTH ----- */
+    .glass-card {
+        background: rgba(255,255,255,0.06);
+        padding: 28px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.15);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 
+            0px 12px 25px rgba(0,0,0,0.6),
+            inset 0px 1px 4px rgba(255,255,255,0.1);
+        position: relative;
+        overflow: hidden;
+    }
 
-        .block-container {{
-            color: white;
-        }}
+    /* Glass Shine Reflection */
+    .glass-card::before {
+        content: "";
+        position: absolute;
+        top: -80%;
+        left: -40%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(120deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 60%);
+        transform: rotate(25deg);
+        pointer-events: none;
+    }
 
-        .tabs-label {{
-            font-size: 20px;
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    /* ----- PREMIUM 3D BUTTONS ----- */
+    .stButton>button {
+        background: linear-gradient(135deg, #57C1EB, #246FA8);
+        color: white;
+        border: none;
+        padding: 12px 26px;
+        font-size: 17px;
+        border-radius: 12px;
+        font-weight: 600;
+        box-shadow: 
+            0px 4px 14px rgba(0,150,255,0.45),
+            inset 0px 1px 3px rgba(255,255,255,0.2);
+        transition: 0.2s ease-in-out;
+    }
 
-set_bg()
+    .stButton>button:hover {
+        transform: translateY(-3px);
+        box-shadow:
+            0px 7px 20px rgba(0,150,255,0.75),
+            inset 0px 1px 4px rgba(255,255,255,0.25);
+    }
 
-# ================================
+    .stButton>button:active {
+        transform: translateY(1px);
+        box-shadow:
+            0px 2px 10px rgba(0,150,255,0.45),
+            inset 0px 1px 3px rgba(255,255,255,0.15);
+    }
+
+    /* TEXT INPUT + TEXT AREA PREMIUM GLASS FIELDS */
+    textarea, input, select {
+        background: rgba(255,255,255,0.08) !important;
+        color: #E3ECF7 !important;
+        border-radius: 10px !important;
+        border: 1px solid rgba(255,255,255,0.2) !important;
+        backdrop-filter: blur(6px) !important;
+    }
+
+    label, .stTextInput label {
+        font-weight: 600 !important;
+        color: #D3E1F2 !important;
+        margin-bottom: 8px !important;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        font-size: 18px;
+    }
+
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------------------------------
+# TITLE
+# ---------------------------------------
+st.markdown("<h1 class='title-glow'>Digital Time Capsule Notary</h1>", unsafe_allow_html=True)
+st.markdown("<p class='subtitle'>High-fidelity cryptographic sealing & verification</p>", unsafe_allow_html=True)
+st.write("")
+
+# ---------------------------------------
 # SESSION INIT
-# ================================
+# ---------------------------------------
 if 'ledger' not in st.session_state:
     st.session_state.ledger = {}
 if 'kyc_verified' not in st.session_state:
@@ -108,126 +143,94 @@ if 'kyc_verified' not in st.session_state:
 if 'user_id' not in st.session_state:
     st.session_state.user_id = "UNKNOWN"
 
-# ================================
-# HASHING LOGIC
-# ================================
+# HASH
 def sha256_hash(data: str) -> str:
-    return hashlib.sha256(data.encode('utf-8')).hexdigest()
+    return hashlib.sha256(data.encode()).hexdigest()
 
-# ================================
-# MAIN TITLE
-# ================================
-st.markdown("<h1 class='title-glow'>🔮 Digital Time Capsule Notary</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subtitle'>A futuristic blockchain-style sealing & verification system</p>", unsafe_allow_html=True)
-st.markdown("")
-
-# ================================
-# TABS WITH MODERN LOOK
-# ================================
+# ---------------------------------------
+# TABS
+# ---------------------------------------
 tab1, tab2, tab3 = st.tabs([
     "👤 Identity Setup",
     "📜 Seal Document",
     "🔍 Verify Integrity"
 ])
 
-# ============================================================
-# TAB 1 — KYC (DUMMY)
-# ============================================================
+# ===========================
+# TAB 1 — KYC
+# ===========================
 with tab1:
-    st.markdown("<div class='glass'>", unsafe_allow_html=True)
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.subheader("🔐 Identity Verification")
 
-    st.subheader("🔐 Identity Verification (Dummy KYC)")
+    st.info("Verification Status: " + ("✅ Verified" if st.session_state.kyc_verified else "❌ Unverified"))
 
-    st.write(
-        """
-        This simulation mimics a blockchain identity oracle.  
-        Enter your name to become *Verified*.
-        """
-    )
-
-    status_emoji = "✅" if st.session_state.kyc_verified else "❌"
-    status_text = "VERIFIED" if st.session_state.kyc_verified else "UNVERIFIED"
-    st.info(f"**Status:** {status_emoji} {status_text}")
-
-    user_name = st.text_input(
-        "Enter your Name / ID",
-        value=st.session_state.user_id if st.session_state.user_id != "UNKNOWN" else "",
-        disabled=st.session_state.kyc_verified
-    )
+    name = st.text_input("Enter Name / ID", value="" if st.session_state.user_id=="UNKNOWN" else st.session_state.user_id, disabled=st.session_state.kyc_verified)
 
     if st.button("Verify Identity", disabled=st.session_state.kyc_verified):
-        if user_name.strip():
-            st.session_state.user_id = user_name.strip()
+        if name.strip():
+            st.session_state.user_id = name.strip()
             st.session_state.kyc_verified = True
-            st.success("Identity Verified!")
+            st.success("Identity Successfully Verified!")
         else:
-            st.error("Enter a valid name.")
+            st.error("Enter a valid ID.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ============================================================
+# ===========================
 # TAB 2 — SEAL DOCUMENT
-# ============================================================
+# ===========================
 with tab2:
-    st.markdown("<div class='glass'>", unsafe_allow_html=True)
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
 
-    st.subheader("📜 Seal Document")
+    st.subheader("📜 Seal Your Document")
 
     if not st.session_state.kyc_verified:
-        st.warning("Please complete Identity Verification first.")
+        st.warning("Complete Identity Verification first.")
+
     else:
-        doc = st.text_area("Paste EXACT Document Content", height=200)
+        doc_text = st.text_area("Paste document content", height=200)
 
-        release_date = st.date_input(
-            "Release Date (Time Lock)",
-            min_value=date.today(),
-            value=date(date.today().year + 5, date.today().month, date.today().day)
-        )
+        release_date = st.date_input("Release Date (Time Lock)", min_value=date.today())
 
-        if st.button("Seal to Ledger"):
-            if not doc.strip():
+        if st.button("Seal Document"):
+            if not doc_text.strip():
                 st.error("Document cannot be empty.")
-            elif release_date <= date.today():
-                st.error("Release date must be in the future.")
             else:
-                h = sha256_hash(doc)
+                h = sha256_hash(doc_text)
                 st.session_state.ledger[h] = {
                     "seal_date": datetime.now().isoformat(),
                     "signer_id": st.session_state.user_id,
-                    "release_date": release_date.isoformat(),
+                    "release_date": release_date.isoformat()
                 }
-
                 st.success("Document Sealed Successfully!")
-
                 st.code(h)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ============================================================
-# TAB 3 — VERIFY
-# ============================================================
+# ===========================
+# TAB 3 — VERIFICATION
+# ===========================
 with tab3:
-    st.markdown("<div class='glass'>", unsafe_allow_html=True)
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
 
-    st.subheader("🔍 Verify Sealed Document")
+    st.subheader("🔍 Verify Document")
 
     hash_id = st.text_input("Enter Hash ID")
-    verify_doc = st.text_area("Paste Document to Verify", height=200)
+    check_doc = st.text_area("Document to verify", height=200)
 
     if st.button("Verify Integrity"):
         record = st.session_state.ledger.get(hash_id)
-
         if not record:
-            st.error("❌ Hash not found — forged or incorrect.")
+            st.error("Invalid or unregistered hash.")
         else:
-            release_dt = datetime.strptime(record["release_date"], "%Y-%m-%d")
-
-            if datetime.now() < release_dt:
-                st.warning(f"🔒 Time-locked until {release_dt.date()}")
+            # time lock
+            if datetime.now() < datetime.fromisoformat(record["release_date"]):
+                st.warning("🔒 Time lock active. Cannot verify yet.")
             else:
-                if sha256_hash(verify_doc) == hash_id:
-                    st.success("🟢 Document Verified — Untampered")
+                if sha256_hash(check_doc) == hash_id:
+                    st.success("🟢 Verified — Document is original.")
                 else:
-                    st.error("🔴 Document Changed — Hash Mismatch")
+                    st.error("🔴 Document mismatch — Contents altered.")
 
     st.markdown("</div>", unsafe_allow_html=True)
