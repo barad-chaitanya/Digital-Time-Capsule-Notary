@@ -196,7 +196,8 @@ for(let i=0; i<25; i++){
 # --------------------------------------------------
 # TITLE
 # --------------------------------------------------
-st.markdown("<h1 class='title'>Ultra Premium Digital Time Capsule</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='title'>Digital Notary</h1>", unsafe_allow_html=True)
+
 st.write("")
 
 # SESSION
