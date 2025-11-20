@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Digital Notary</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      color: white;
+      background: linear-gradient(135deg, #A832FF, #6E00FF, #1400FF);
+      background-size: 400% 400%;
+      animation: gradientMove 15s ease infinite;
+    }
+
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 60px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 25px;
+      opacity: 0.8;
+      transition: 0.2s ease;
+    }
+
+    .nav a:hover {
+      opacity: 1;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 140px 20px 120px;
+    }
+
+    .hero-title {
+      font-size: 64px;
+      font-weight: 900;
+      line-height: 1.1;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    .hero-sub {
+      font-size: 22px;
+      margin-top: 20px;
+      max-width: 650px;
+      margin-left: auto;
+      margin-right: auto;
+      opacity: 0.85;
+      font-weight: 300;
+    }
+
+    .cta-btn {
+      margin-top: 45px;
+      padding: 16px 36px;
+      font-size: 20px;
+      border-radius: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(12px);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.25s;
+    }
+
+    .cta-btn:hover {
+      background: rgba(255, 255, 255, 0.32);
+    }
+
+    .section {
+      padding: 120px 60px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 50px;
+    }
+
+    .feature-card {
+      width: 320px;
+      padding: 30px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      text-align: center;
+    }
+
+    .feature-card h3 {
+      font-size: 26px;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 50px;
+      font-size: 15px;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <div class="logo" style="font-weight:900; font-size:22px; letter-spacing:-1px;">Digital Notary</div>
+    <div>
+      <a href="#features">Features</a>
+      <a href="#team">Team</a>
+      <a href="#start">Start</a>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-title">Seal Your Words. Protect Your Ideas. Own Your Truth.</div>
+    <div class="hero-sub">A secure, private, and beautifully simple way to timestamp and seal your documents using cryptographic hashing. No servers. No storage. Just pure trust.</div>
+    <button class="cta-btn">Launch App</button>
+  </div>
+
+  <div class="section" id="features">
+    <div class="feature-card">
+      <h3>KYC Identity Check</h3>
+      <p>Simple name-based identity step to bind your seal to you.</p>
+    </div>
+
+    <div class="feature-card">
+      <h3>Hash-Based Sealing</h3>
+      <p>Your document becomes a permanent cryptographic fingerprint forever.</p>
+    </div>
+
+    <div class="feature-card">
+      <h3>Time Lock</h3>
+      <p>Choose when the document can be verified in the future.</p>
+    </div>
+
+    <div class="feature-card">
+      <h3>PDF Certificate</h3>
+      <p>Download a password-protected certificate sealed with your hash.</p>
+    </div>
+  </div>
+
+  <div class="section" id="team" style="text-align:center; display:block;">
+    <h2 style="font-size:38px; font-weight:800; margin-bottom:20px;">People Behind the Project</h2>
+    <p style="font-size:20px; max-width:700px; margin:auto; opacity:0.85;">This project exists because three people put their time, effort, and thoughts into it: Chaitanya, Aarsh, and Harsh.</p>
+  </div>
+
+  <div class="footer">
+    © 2025 Digital Notary — Created with privacy, trust, and intention.
+  </div>
+</body>
+</html>
