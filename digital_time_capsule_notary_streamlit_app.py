@@ -1,4 +1,4 @@
-# app.py — Digital Notary (Stripe-gradient + Outline Buttons + Encrypted PDF certificates)
+# app.py — Digital Notary (Stripe Pink→Purple→Indigo animated gradient + outline buttons + encrypted PDF)
 import streamlit as st
 import sqlite3
 import hashlib
@@ -36,7 +36,7 @@ def init_db():
 init_db()
 
 # ---------------------------
-# Utilities
+# Utility functions
 # ---------------------------
 def sha256_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -91,7 +91,7 @@ if "page" not in st.session_state:
     st.session_state.page = "KYC"
 
 # ---------------------------
-# CSS / Header (Stripe gradient + outline buttons)
+# CSS: animated gradient (pink → purple → indigo), outline buttons, glass cards
 # ---------------------------
 st.markdown(
     """
@@ -99,19 +99,57 @@ st.markdown(
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
     html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
 
-    /* Full app gradient background */
+    /* Animated gradient background */
+    :root {
+      --g1: #ff4db6;
+      --g2: #8b5cf6;
+      --g3: #5b21b6;
+    }
     body {
-        background: linear-gradient(135deg, #0A0F2D 0%, #3B2DFD 50%, #D96FFF 100%) !important;
+      background: linear-gradient(120deg, var(--g1), var(--g2), var(--g3));
+      background-size: 300% 300%;
+      animation: gradientShift 12s ease infinite;
+    }
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
+    /* Hero (keeps text readable) */
     .hero {
         padding: 28px 18px;
         border-radius: 12px;
         color: white;
         text-align: center;
         margin-bottom: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+        box-shadow: 0 12px 40px rgba(11,15,30,0.25);
+        border: 1px solid rgba(255,255,255,0.06);
+        backdrop-filter: blur(6px);
     }
 
+    /* Navigation row */
+    .nav-row { display:flex; justify-content:center; gap:10px; margin: 12px 0 18px 0; }
+
+    /* Outline nav buttons (white border, transparent) */
+    .stButton>button {
+        background: transparent !important;
+        color: white !important;
+        padding: 10px 18px !important;
+        border-radius: 8px !important;
+        border: 1px solid rgba(255,255,255,0.92) !important;
+        font-weight: 600 !important;
+        transition: transform 0.15s ease, background 0.15s ease !important;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.12) !important;
+        backdrop-filter: blur(4px) !important;
+    }
+    .stButton>button:hover {
+        transform: translateY(-3px) !important;
+        background: rgba(255,255,255,0.06) !important;
+    }
+
+    /* Glass card for content */
     .card {
         background: rgba(255,255,255,0.96);
         border-radius: 12px;
@@ -123,25 +161,6 @@ st.markdown(
     }
     .card:hover { transform: translateY(-6px); box-shadow: 0 18px 48px rgba(8,10,20,0.10); }
 
-    .nav-row { display:flex; justify-content:center; gap:10px; margin: 12px 0 18px 0; }
-
-    /* Outline (transparent) buttons with white border for nav */
-    .stButton>button {
-        background: transparent !important;
-        color: white !important;
-        padding: 10px 18px !important;
-        border-radius: 8px !important;
-        border: 1px solid rgba(255,255,255,0.85) !important;
-        font-weight: 600 !important;
-        transition: transform 0.15s ease, background 0.15s ease !important;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.12) !important;
-    }
-    .stButton>button:hover {
-        transform: translateY(-3px) !important;
-        background: rgba(255,255,255,0.06) !important;
-    }
-
-    /* Small muted text */
     .muted { color: rgba(4,18,39,0.6); font-size:13px; }
 
     pre.code {
@@ -152,12 +171,18 @@ st.markdown(
         overflow-x: auto;
     }
 
+    /* small screens: nav wrap */
+    @media (max-width: 640px) {
+        .nav-row { flex-wrap: wrap; gap:8px; }
+    }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# header hero (uses white text on gradient background)
+# ---------------------------
+# Header / hero
+# ---------------------------
 st.markdown(
     """
     <div class="hero">
@@ -169,7 +194,7 @@ st.markdown(
 )
 
 # ---------------------------
-# Top nav (five outline buttons)
+# Top nav (outline buttons)
 # ---------------------------
 st.markdown("<div class='nav-row'>", unsafe_allow_html=True)
 cols = st.columns(5)
@@ -191,22 +216,20 @@ with cols[4]:
 st.markdown("</div>", unsafe_allow_html=True)
 
 # ---------------------------
-# PDF certificate creation (FPDF) + encrypt with pypdf
+# PDF certificate creation + encryption (fpdf2 + pypdf)
 # ---------------------------
 def create_certificate_pdf_bytes(hash_val: str, content: str, user: str, seal_date: str, release_date: str) -> bytes:
     """
     Create a PDF certificate (in memory) using fpdf, then encrypt it with pypdf using hash_val as password.
     Returns encrypted PDF bytes.
     """
-    # 1) Generate plain PDF with fpdf
-    # Use A4-like size in points - fpdf default unit=pt works with those values if using format="A4"
     pdf = FPDF(orientation="P", unit="pt", format="A4")
     pdf.set_auto_page_break(auto=True, margin=40)
     pdf.add_page()
 
-    # Header band
-    w, h = 595.28, 841.89  # A4 points
-    pdf.set_fill_color(59,45,253)  # deep purple tone
+    # Header band (dark)
+    w, h = 595.28, 841.89  # A4 in points
+    pdf.set_fill_color(220, 100, 200)  # accent - won't be visible as full gradient but gives stripe
     pdf.rect(0, 0, w, 120, 'F')
     pdf.set_xy(40, 40)
     pdf.set_text_color(255,255,255)
@@ -245,21 +268,20 @@ def create_certificate_pdf_bytes(hash_val: str, content: str, user: str, seal_da
 
     pdf.set_y(h - 120)
     pdf.set_font("Helvetica", size=9)
-    pdf.cell(0, 10, "Digital Notary • This certificate is electronically generated.", ln=True)
+    pdf.cell(0, 10, "Digital Notary • Electronically generated certificate", ln=True)
 
-    # Get PDF bytes from fpdf
-    pdf_bytes_str = pdf.output(dest='S')  # returns str in fpdf2
+    # get bytes
+    pdf_bytes_str = pdf.output(dest='S')
     if isinstance(pdf_bytes_str, str):
         pdf_bytes = pdf_bytes_str.encode('latin-1')
     else:
         pdf_bytes = pdf_bytes_str
 
-    # 2) Encrypt with pypdf
+    # encrypt with pypdf
     reader = PdfReader(io.BytesIO(pdf_bytes))
     writer = PdfWriter()
     for p in reader.pages:
         writer.add_page(p)
-    # encrypt using hash as both user and owner password (user must enter to open)
     writer.encrypt(user_password=hash_val, owner_password=hash_val, use_128bit=True)
 
     out = io.BytesIO()
