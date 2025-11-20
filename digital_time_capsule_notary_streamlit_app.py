@@ -3,26 +3,22 @@ import sqlite3
 import hashlib
 from datetime import datetime, date
 
-# --------------------------------------------------
-# PAGE CONFIG
-# --------------------------------------------------
-st.set_page_config(
-    page_title="Ultra Premium Digital Time Capsule",
-    layout="centered"
-)
+# -------------------------------------------------------------
+# 🔹 DATABASE SETUP
+# -------------------------------------------------------------
+DB_FILE = "notary.db"
 
-# --------------------------------------------------
-# DATABASE SETUP
-# --------------------------------------------------
-def init_db():
-    conn = sqlite3.connect("time_capsule.db")
+def connect_db():
+    return sqlite3.connect(DB_FILE, check_same_thread=False)
+
+def setup_db():
+    conn = connect_db()
     c = conn.cursor()
     c.execute("""
-        CREATE TABLE IF NOT EXISTS sealed_docs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            hash TEXT UNIQUE,
+        CREATE TABLE IF NOT EXISTS documents (
+            hash TEXT PRIMARY KEY,
             content TEXT,
-            signer_id TEXT,
+            user TEXT,
             seal_date TEXT,
             release_date TEXT
         )
@@ -30,256 +26,263 @@ def init_db():
     conn.commit()
     conn.close()
 
-def save_document(hash_val, content, signer, release_date):
-    conn = sqlite3.connect("time_capsule.db")
+setup_db()
+
+
+# -------------------------------------------------------------
+# 🔹 HELPER FUNCTIONS
+# -------------------------------------------------------------
+def sha256_hash(text):
+    return hashlib.sha256(text.encode()).hexdigest()
+
+def save_document(hash_value, content, user, release_date):
+    conn = connect_db()
     c = conn.cursor()
-    c.execute(
-        "INSERT INTO sealed_docs (hash, content, signer_id, seal_date, release_date) VALUES (?, ?, ?, ?, ?)",
-        (hash_val, content, signer, datetime.now().isoformat(), release_date)
-    )
+    c.execute("""
+        INSERT INTO documents (hash, content, user, seal_date, release_date)
+        VALUES (?, ?, ?, ?, ?)
+    """, (hash_value, content, user, datetime.now().isoformat(), release_date))
     conn.commit()
     conn.close()
 
-def get_document(hash_val):
-    conn = sqlite3.connect("time_capsule.db")
+def fetch_document(hash_value):
+    conn = connect_db()
     c = conn.cursor()
-    c.execute("SELECT * FROM sealed_docs WHERE hash=?", (hash_val,))
-    res = c.fetchone()
+    c.execute("SELECT * FROM documents WHERE hash=?", (hash_value,))
+    result = c.fetchone()
     conn.close()
-    return res
+    return result
 
-# Initialize DB
-init_db()
+def fetch_user_documents(user):
+    conn = connect_db()
+    c = conn.cursor()
+    c.execute("SELECT hash, seal_date, release_date, content FROM documents WHERE user=?", (user,))
+    rows = c.fetchall()
+    conn.close()
+    return rows
 
-# --------------------------------------------------
-# HASH FUNCTION
-# --------------------------------------------------
-def sha256_hash(text: str) -> str:
-    return hashlib.sha256(text.encode()).hexdigest()
 
-# --------------------------------------------------
-# ULTRA PREMIUM ANIMATED CSS
-# --------------------------------------------------
+# -------------------------------------------------------------
+# 🔹 PAGE SETUP
+# -------------------------------------------------------------
+st.set_page_config(page_title="Digital Notary", layout="centered")
+
+if "user" not in st.session_state:
+    st.session_state.user = "Guest"
+
+if "kyc" not in st.session_state:
+    st.session_state.kyc = False
+
+if "page" not in st.session_state:
+    st.session_state.page = "KYC"
+
+
+# -------------------------------------------------------------
+# 🔹 PREMIUM GLASS UI CSS
+# -------------------------------------------------------------
 st.markdown("""
 <style>
 
-    /* ----------------------------------------
-       PREMIUM BACKGROUND LAYER
-    ----------------------------------------- */
-    [data-testid="stAppViewContainer"] {
-        background: radial-gradient(circle at top, #121318, #050506 70%);
-        color: white;
-        overflow: hidden;
-    }
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
 
-    /* Floating particles */
-    @keyframes float {
-        0% { transform: translateY(0px) translateX(0px); opacity: 0.5; }
-        50% { transform: translateY(-40px) translateX(20px); opacity: 1; }
-        100% { transform: translateY(0px) translateX(0px); opacity: 0.5; }
-    }
+html, body, [class*="css"] {
+    font-family: 'Poppins', sans-serif !important;
+}
 
-    .particle {
-        position: absolute;
-        width: 8px;
-        height: 8px;
-        background: rgba(120,190,255,0.7);
-        border-radius: 50%;
-        box-shadow: 0px 0px 10px rgba(120,190,255,0.9);
-        animation: float 6s infinite ease-in-out;
-    }
+/* GLASS BUTTONS */
+.stButton>button {
+    background: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(10px) !important;
+    color: white !important;
+    border: 1px solid rgba(255,255,255,0.3) !important;
+    padding: 14px 26px !important;
+    border-radius: 14px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    box-shadow: 0px 4px 16px rgba(0,0,0,0.18) !important;
+    transition: 0.25s ease !important;
+}
 
-    /* ----------------------------------------
-       HOLOGRAPHIC TITLE
-    ----------------------------------------- */
-    .title {
-        font-size: 48px;
-        font-weight: 900;
-        text-align: center;
-        background: linear-gradient(90deg,#4ACBFF,#A8D0FF,#4ACBFF);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-shadow: 0px 0px 35px rgba(80,160,255,0.35);
-        animation: glowTitle 4s infinite alternate;
-    }
+.stButton>button:hover {
+    background: rgba(255, 255, 255, 0.25) !important;
+    transform: translateY(-3px) !important;
+    box-shadow: 0px 8px 22px rgba(0,0,0,0.3) !important;
+}
 
-    @keyframes glowTitle {
-        from { text-shadow: 0px 0px 20px rgba(80,160,255,0.15); }
-        to { text-shadow: 0px 0px 40px rgba(80,160,255,0.55); }
-    }
-
-    /* ----------------------------------------
-       ANIMATED GLASS CARD
-    ----------------------------------------- */
-    .glass-card {
-        background: rgba(255,255,255,0.06);
-        border-radius: 22px;
-        border: 1px solid rgba(255,255,255,0.12);
-        padding: 28px;
-        backdrop-filter: blur(12px);
-        box-shadow: 0 15px 35px rgba(0,0,0,0.45);
-        position: relative;
-        overflow: hidden;
-    }
-
-    /* Shine animation */
-    .glass-card::before {
-        content: "";
-        position: absolute;
-        top: -100%;
-        left: -60%;
-        width: 260%;
-        height: 260%;
-        background: linear-gradient(120deg, rgba(255,255,255,0.10), rgba(255,255,255,0));
-        transform: rotate(20deg);
-        animation: shine 7s infinite linear;
-    }
-
-    @keyframes shine {
-        from { transform: translateX(-100%) rotate(20deg); }
-        to   { transform: translateX(100%) rotate(20deg);  }
-    }
-
-    /* ----------------------------------------
-       HOLOGRAPHIC BUTTONS
-    ----------------------------------------- */
-    .stButton>button {
-        background: linear-gradient(135deg, #4ACBFF, #2476E5);
-        padding: 12px 30px;
-        border-radius: 14px;
-        font-size: 18px;
-        color: white;
-        font-weight: 600;
-        border: none;
-        box-shadow:
-            0px 7px 22px rgba(60,160,255,0.4),
-            inset 0px 1px 4px rgba(255,255,255,0.2);
-        transition: 0.2s;
-    }
-
-    .stButton>button:hover {
-        transform: translateY(-4px) scale(1.02);
-        box-shadow:
-            0px 12px 26px rgba(60,160,255,0.7),
-            inset 0px 1px 5px rgba(255,255,255,0.25);
-    }
-
-    .stButton>button:active {
-        transform: translateY(1px);
-    }
-
-    /* Inputs */
-    textarea, input {
-        background: rgba(255,255,255,0.08) !important;
-        border-radius: 12px !important;
-        color: #E8F1FF !important;
-        border: 1px solid rgba(255,255,255,0.18) !important;
-        backdrop-filter: blur(6px) !important;
-    }
+/* NAV BAR */
+.nav-row {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    margin-top: 10px;
+    margin-bottom: 22px;
+}
 
 </style>
-
-<script>
-let body = window.parent.document.body;
-for(let i=0; i<25; i++){
-    let p = document.createElement("div");
-    p.className = "particle";
-    p.style.left = Math.random()*100 + "vw";
-    p.style.top = Math.random()*100 + "vh";
-    p.style.animationDuration = (6 + Math.random()*4) + "s";
-    p.style.opacity = 0.3 + Math.random()*0.4;
-    body.appendChild(p);
-}
-</script>
 """, unsafe_allow_html=True)
 
-# --------------------------------------------------
-# TITLE
-# --------------------------------------------------
-st.markdown("<h1 class='title'>Ultra Premium Digital Time Capsule</h1>", unsafe_allow_html=True)
+
+# -------------------------------------------------------------
+# 🔹 HEADER
+# -------------------------------------------------------------
+st.markdown("## 🌌 Digital Notary — Secure. Premium. Simple.")
 st.write("")
 
-# SESSION
-if "kyc" not in st.session_state:
-    st.session_state.kyc = False
-if "user" not in st.session_state:
-    st.session_state.user = None
 
-# --------------------------------------------------
-# TABS
-# --------------------------------------------------
-tab1, tab2, tab3 = st.tabs(["👤 Identity", "📜 Seal Document", "🔍 Verify"])
+# -------------------------------------------------------------
+# 🔹 NAVIGATION BUTTONS
+# -------------------------------------------------------------
+st.markdown("<div class='nav-row'>", unsafe_allow_html=True)
 
-# --------------------------------------------------
-# TAB 1 — IDENTITY
-# --------------------------------------------------
-with tab1:
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    st.subheader("👤 Identity Verification")
+col1, col2, col3, col4, col5 = st.columns(5)
 
-    name = st.text_input("Enter your name / ID")
+with col1:
+    if st.button("🪪 KYC"):
+        st.session_state.page = "KYC"
 
-    if st.button("Verify Identity"):
-        if name.strip():
-            st.session_state.kyc = True
-            st.session_state.user = name.strip()
-            st.success("Identity verified!")
-        else:
-            st.error("Name cannot be empty.")
+with col2:
+    if st.button("🏠 Home"):
+        st.session_state.page = "Home"
 
-    st.markdown("</div>", unsafe_allow_html=True)
+with col3:
+    if st.button("🔏 Seal"):
+        st.session_state.page = "Seal"
 
-# --------------------------------------------------
-# TAB 2 — SEAL
-# --------------------------------------------------
-with tab2:
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+with col4:
+    if st.button("🔎 Verify"):
+        st.session_state.page = "Verify"
+
+with col5:
+    if st.button("👤 Profile"):
+        st.session_state.page = "Profile"
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+st.write("---")
+
+
+# -------------------------------------------------------------
+# 🔹 CARD COMPONENT
+# -------------------------------------------------------------
+def card(title, content):
+    with st.container(border=True):
+        st.subheader(title)
+        st.write(content)
+
+
+# -------------------------------------------------------------
+# 🔹 KYC PAGE
+# -------------------------------------------------------------
+if st.session_state.page == "KYC":
+    st.header("🪪 Identity Verification")
+
+    with st.container(border=True):
+        name = st.text_input("Enter Full Name", value=st.session_state.user)
+
+        if st.button("Verify Identity"):
+            if name.strip():
+                st.session_state.user = name.strip()
+                st.session_state.kyc = True
+                st.success("Identity Verified Successfully ✔")
+            else:
+                st.error("Please enter your name.")
+
+    if st.session_state.kyc:
+        st.success(f"Verified as **{st.session_state.user}**")
+
+
+# -------------------------------------------------------------
+# 🔹 HOME PAGE
+# -------------------------------------------------------------
+elif st.session_state.page == "Home":
+    st.header("✨ Recent Sealed Documents")
+
+    conn = connect_db()
+    c = conn.cursor()
+    c.execute("SELECT user, hash, seal_date FROM documents ORDER BY seal_date DESC LIMIT 5")
+    rows = c.fetchall()
+    conn.close()
+
+    if not rows:
+        st.info("No documents sealed yet.")
+    else:
+        for user, hv, seal_date in rows:
+            card(
+                f"🔏 Sealed by {user}",
+                f"**Hash:** `{hv[:30]}...`\n\n**Sealed On:** {seal_date}"
+            )
+
+
+# -------------------------------------------------------------
+# 🔹 SEAL PAGE
+# -------------------------------------------------------------
+elif st.session_state.page == "Seal":
+    st.header("🔏 Seal a Document")
 
     if not st.session_state.kyc:
-        st.warning("Verify identity first.")
+        st.warning("Please complete KYC first.")
     else:
-        st.subheader("📜 Seal Document")
+        with st.container(border=True):
+            content = st.text_area("Enter Document Text")
+            release = st.date_input("Release Date", min_value=date.today())
 
-        content = st.text_area("Paste your document")
-        release_date = st.date_input("Release date", min_value=date.today())
-
-        if st.button("Seal Now"):
-            if content.strip():
-                h = sha256_hash(content)
-                save_document(h, content, st.session_state.user, release_date.isoformat())
-                st.success("Document sealed!")
-                st.code(h)
-            else:
-                st.error("Document cannot be empty.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# --------------------------------------------------
-# TAB 3 — VERIFY
-# --------------------------------------------------
-with tab3:
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-
-    st.subheader("🔍 Verify Document Integrity")
-
-    hash_val = st.text_input("Enter hash")
-    new_content = st.text_area("Paste document to verify")
-
-    if st.button("Verify"):
-        record = get_document(hash_val)
-
-        if not record:
-            st.error("Hash not found in blockchain ledger!")
-        else:
-            _, _, original_content, signer, seal_date, release_date = record
-
-            # Check time lock
-            if datetime.now() < datetime.fromisoformat(release_date):
-                st.warning(f"🔒 Locked until {release_date}")
-            else:
-                if sha256_hash(new_content) == hash_val:
-                    st.success(f"🟢 Verified! Sealed by **{signer}** on {seal_date}")
+            if st.button("Seal Document"):
+                if not content.strip():
+                    st.error("Content cannot be empty.")
                 else:
-                    st.error("🔴 Document has been altered!")
+                    h = sha256_hash(content)
+                    save_document(h, content, st.session_state.user, release.isoformat())
+                    st.success("Document Sealed Successfully ✔")
+                    st.code(h)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+
+# -------------------------------------------------------------
+# 🔹 VERIFY PAGE
+# -------------------------------------------------------------
+elif st.session_state.page == "Verify":
+    st.header("🔎 Verify Document")
+
+    with st.container(border=True):
+        h = st.text_input("Enter Document Hash")
+        text = st.text_area("Paste Document Text")
+
+        if st.button("Verify"):
+            record = fetch_document(h)
+
+            if not record:
+                st.error("Hash not found ❌")
+            else:
+                hv, stored, user, sd, rd = record
+                release_dt = datetime.fromisoformat(rd)
+
+                if datetime.now() < release_dt:
+                    st.warning(f"Locked until **{release_dt.strftime('%B %d, %Y')}**")
+                else:
+                    if sha256_hash(text) == h:
+                        st.success("Document Verified ✔")
+                        st.write(f"**Signed By:** {user}")
+                        st.write(f"**Sealed On:** {sd}")
+                    else:
+                        st.error("Document content does not match ❌")
+
+
+# -------------------------------------------------------------
+# 🔹 PROFILE PAGE
+# -------------------------------------------------------------
+elif st.session_state.page == "Profile":
+    st.header(f"👤 Documents of {st.session_state.user}")
+
+    docs = fetch_user_documents(st.session_state.user)
+
+    if not docs:
+        st.info("You have not sealed any documents yet.")
+    else:
+        for hv, sd, rd, content in docs:
+            with st.container(border=True):
+                st.write(f"**Hash:** `{hv}`")
+                st.write(f"**Sealed:** {sd}")
+                st.write(f"**Releases:** {rd}")
+
+                if st.checkbox(f"Show Content ({hv[:12]})"):
+                    st.text_area("Content", content, height=150)
+
