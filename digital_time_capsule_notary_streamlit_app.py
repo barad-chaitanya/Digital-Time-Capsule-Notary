@@ -28,10 +28,12 @@ def setup_db():
 
 setup_db()
 
+# -------------------------------------------
+# HELPERS
+# -------------------------------------------
+def sha256_hash(text):
+    return hashlib.sha256(text.encode()).hexdigest()
 
-# -------------------------------------------
-# DATABASE HELPERS
-# -------------------------------------------
 def save_document(hash_value, content, user, release_date):
     conn = connect_db()
     c = conn.cursor()
@@ -58,46 +60,45 @@ def fetch_user_documents(user):
     conn.close()
     return rows
 
-
 # -------------------------------------------
-# HASH FUNCTION
-# -------------------------------------------
-def sha256_hash(text):
-    return hashlib.sha256(text.encode()).hexdigest()
-
-
-# -------------------------------------------
-# STREAMLIT APP SETUP
+# PREMIUM APP SETUP
 # -------------------------------------------
 st.set_page_config(page_title="Digital Notary", layout="centered")
 
 if "user" not in st.session_state:
     st.session_state.user = "Guest"
 
-st.title("Digital Notary")
+# Soft gradient block
+st.markdown("### 🌌 Digital Notary — Secure • Elegant • Premium")
 
+st.write("#### Welcome to your personal digital notarization vault.")
+st.write("### ")
 
-# -------------------------------------------
-# SIDEBAR NAVIGATION
-# -------------------------------------------
-st.sidebar.header("Navigation")
-page = st.sidebar.radio("Choose a section:", ["Home", "Seal Document", "Verify Document", "Profile"])
+# Sidebar
+st.sidebar.title("🔐 Digital Notary")
+page = st.sidebar.radio("Navigate", ["Home", "Seal Document", "Verify Document", "Profile"])
 
-# USER NAME
 st.sidebar.subheader("Your Name")
-name = st.sidebar.text_input("Enter your name", st.session_state.user)
-
-if st.sidebar.button("Set Name"):
+name = st.sidebar.text_input("Update Name", st.session_state.user)
+if st.sidebar.button("Save"):
     if name.strip():
         st.session_state.user = name.strip()
-        st.sidebar.success("Name updated!")
+        st.sidebar.success("Updated!")
 
+# -------------------------------------------
+# PREMIUM CARD COMPONENT
+# -------------------------------------------
+def card(title, content):
+    with st.container(border=True):
+        st.subheader(title)
+        st.write(content)
+        st.write("")
 
 # -------------------------------------------
 # HOME PAGE
 # -------------------------------------------
 if page == "Home":
-    st.header("Recent Sealed Documents")
+    st.header("✨ Recent Sealed Documents")
 
     conn = connect_db()
     c = conn.cursor()
@@ -106,84 +107,81 @@ if page == "Home":
     conn.close()
 
     if not entries:
-        st.info("No documents have been sealed yet.")
+        st.info("No documents sealed yet.")
     else:
         for user, hash_val, seal_date in entries:
-            st.write(f"**User:** {user}")
-            st.write(f"**Hash:** `{hash_val[:25]}...`")
-            st.write(f"**Sealed on:** {seal_date}")
-            st.write("---")
-
+            card(
+                f"🔏 Document by {user}",
+                f"**Hash:** `{hash_val[:30]}...`\n\n**Sealed on:** {seal_date}"
+            )
 
 # -------------------------------------------
 # SEAL DOCUMENT
 # -------------------------------------------
 elif page == "Seal Document":
-    st.header("Seal a Document")
+    st.header("🔏 Seal a Document")
 
-    content = st.text_area("Enter the document text here")
-    release_date = st.date_input("Release Date", min_value=date.today())
+    with st.container(border=True):
+        content = st.text_area("Document Text")
+        release_date = st.date_input("Release Date", min_value=date.today())
 
-    if st.button("Seal"):
-        if not content.strip():
-            st.error("Document cannot be empty.")
-        else:
-            hash_value = sha256_hash(content)
-            save_document(hash_value, content, st.session_state.user, release_date.isoformat())
+        if st.button("Seal Now"):
+            if not content.strip():
+                st.error("Document cannot be empty.")
+            else:
+                hash_value = sha256_hash(content)
+                save_document(hash_value, content, st.session_state.user, release_date.isoformat())
 
-            st.success("Document successfully sealed!")
-            st.write("Your document hash:")
-            st.code(hash_value)
-
+                st.success("Document sealed successfully!")
+                st.code(hash_value)
 
 # -------------------------------------------
 # VERIFY DOCUMENT
 # -------------------------------------------
 elif page == "Verify Document":
-    st.header("Verify a Document")
+    st.header("🔎 Verify a Document")
 
-    input_hash = st.text_input("Enter document hash")
-    input_text = st.text_area("Paste the document text you want to verify")
+    with st.container(border=True):
+        input_hash = st.text_input("Enter Document Hash")
+        input_text = st.text_area("Paste Document Text")
 
-    if st.button("Verify"):
-        record = fetch_document(input_hash)
+        if st.button("Verify"):
+            record = fetch_document(input_hash)
 
-        if not record:
-            st.error("Hash not found in registry.")
-        else:
-            hash_val, stored_content, user, seal_date, release_date = record
-
-            # Time-lock check
-            release_dt = datetime.fromisoformat(release_date)
-            if datetime.now() < release_dt:
-                st.warning(f"This document is locked until: {release_dt.strftime('%B %d, %Y')}")
+            if not record:
+                st.error("Hash not found.")
             else:
-                computed_hash = sha256_hash(input_text)
-                if computed_hash == input_hash:
-                    st.success("Document successfully verified!")
-                    st.write(f"Signed by: **{user}**")
-                    st.write(f"Sealed on: **{seal_date}**")
-                else:
-                    st.error("Document content does NOT match original.")
+                hash_val, stored_content, user, seal_date, release_date = record
 
+                release_dt = datetime.fromisoformat(release_date)
+
+                if datetime.now() < release_dt:
+                    st.warning(f"Document locked until **{release_dt.strftime('%B %d, %Y')}**")
+                else:
+                    computed_hash = sha256_hash(input_text)
+                    if computed_hash == input_hash:
+                        st.success("Verified successfully!")
+                        st.write(f"**Signed by:** {user}")
+                        st.write(f"**Sealed on:** {seal_date}")
+                    else:
+                        st.error("Document does not match original.")
 
 # -------------------------------------------
 # PROFILE PAGE
 # -------------------------------------------
 elif page == "Profile":
-    st.header(f"{st.session_state.user}'s Document History")
+    st.header(f"📁 {st.session_state.user}'s Documents")
 
     docs = fetch_user_documents(st.session_state.user)
 
     if not docs:
-        st.info("You have not sealed any documents yet.")
+        st.info("You haven't sealed any documents yet.")
     else:
         for hash_val, seal_date, release_date, content in docs:
-            st.write(f"**Hash:** `{hash_val}`")
-            st.write(f"Sealed on: {seal_date}")
-            st.write(f"Releases on: {release_date}")
+            with st.container(border=True):
+                st.write(f"**Hash:** `{hash_val}`")
+                st.write(f"**Sealed:** {seal_date}")
+                st.write(f"**Releases:** {release_date}")
 
-            if st.checkbox(f"Show content for {hash_val[:8]}"):
-                st.text_area("Document Content", content, height=150)
-
-            st.write("---")
+                if st.checkbox(f"Show Content ({hash_val[:8]})"):
+                    st.text_area("Document Content", content, height=150)
