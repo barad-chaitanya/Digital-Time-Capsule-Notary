@@ -14,7 +14,7 @@ st.set_page_config(
 # ================================
 # BACKGROUND IMAGE
 # ================================
-bg_url = "https://i.imgur.com/jxWqIBf.jpeg"  # replace with any bg image you want
+  # replace with any bg image you want
 
 def set_bg():
     st.markdown(
