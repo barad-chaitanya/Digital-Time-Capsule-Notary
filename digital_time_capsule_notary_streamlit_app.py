@@ -7,7 +7,7 @@ from datetime import datetime, date
 # PAGE CONFIG
 # --------------------------------------------------
 st.set_page_config(
-    page_title="Ultra Premium Digital Time Capsule",
+    page_title="Digital Time Capsule",
     layout="centered"
 )
 
