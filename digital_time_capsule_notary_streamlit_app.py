@@ -208,7 +208,12 @@ if "user" not in st.session_state:
 # --------------------------------------------------
 # TABS
 # --------------------------------------------------
-tab1, tab2, tab3 = st.tabs(["👤 Identity", "📜 Seal Document", "🔍 Verify"])
+tab1, tab2, tab3, tab4 = st.tabs([
+    "👤 Identity",
+    "📜 Seal Document",
+    "🔍 Verify",
+    "🧾 Profile"
+])
 
 # --------------------------------------------------
 # TAB 1 — IDENTITY
@@ -281,5 +286,46 @@ with tab3:
                     st.success(f"🟢 Verified! Sealed by **{signer}** on {seal_date}")
                 else:
                     st.error("🔴 Document has been altered!")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+# --------------------------------------------------
+# TAB 4 — PROFILE (USER DASHBOARD)
+# --------------------------------------------------
+with tab4:
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.subheader("🧾 Your Sealed Documents")
+
+    if not st.session_state.kyc:
+        st.warning("Verify identity first to see your documents.")
+    else:
+        conn = sqlite3.connect("time_capsule.db")
+        c = conn.cursor()
+        c.execute("SELECT hash, content, signer_id, seal_date, release_date FROM sealed_docs WHERE signer_id=?", 
+                  (st.session_state.user,))
+        rows = c.fetchall()
+        conn.close()
+
+        if not rows:
+            st.info("You have not sealed any documents yet.")
+        else:
+            st.success(f"Found **{len(rows)}** documents sealed by **{st.session_state.user}**")
+
+            for hash_val, content, signer, seal_date, release_date in rows:
+                # Check lock status
+                locked = datetime.now() < datetime.fromisoformat(release_date)
+                status = "🔒 Locked" if locked else "🟢 Unlocked"
+
+                with st.expander(f"{status} — Hash: {hash_val[:20]}..."):
+                    st.markdown(f"**Hash:** `{hash_val}`")
+                    st.markdown(f"**Signed by:** {signer}")
+                    st.markdown(f"**Sealed on:** {seal_date}")
+                    st.markdown(f"**Release date:** {release_date}")
+
+                    if not locked:
+                        show = st.checkbox(f"Show document content for {hash_val[:10]}...", key=hash_val)
+                        if show:
+                            st.text_area("Original Document Content", content, height=150, disabled=True)
+                    else:
+                        st.info("⏳ This document is still locked. Content will be visible after the release date.")
 
     st.markdown("</div>", unsafe_allow_html=True)
