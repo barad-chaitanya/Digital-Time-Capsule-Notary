@@ -20,6 +20,8 @@ View everything you’ve sealed in a clean profile dashboard
 
 Everything happens on your device, nothing is uploaded, and the app uses a simple, premium Stripe-inspired UI with animated gradients and glass effects.
 
+
+
 🎯 Why I Created This
 
 I built Digital Notary because I wanted something:
@@ -49,6 +51,8 @@ Something only you should reveal later
 I wanted a tool that makes this easy, secure, and beautiful to use.
 
 So I built one.
+
+
 
 🧩 How It Works (Simple Version)
 1. You verify your name
@@ -80,6 +84,8 @@ Paste the original text again and the app will confirm if it’s a perfect match
 
 No servers, no databases, no leakable files.
 
+
+
 👨‍💻 The People Behind This Project
 
 A project feels empty without people.
@@ -98,6 +104,8 @@ Harsh
 Improved UI details, tested features, and made the experience smoother.
 
 This project exists because of everyone above — their ideas, time, and effort.
+
+
 
 🚀 Features
 
@@ -121,6 +129,8 @@ Profile dashboard
 
 Fully private — nothing stored online
 
+
+
 🛠 Tech It Uses
 
 Python
@@ -132,6 +142,8 @@ PyPDF2
 SHA-256 hashing
 
 Custom HTML/CSS for animations
+
+
 
 📦 How to Install
 
@@ -150,6 +162,8 @@ Run the app
 
 streamlit run app.py
 
+
+
 🌐 Deploying on Streamlit Cloud
 
 It works perfectly on Streamlit’s free hosting.
@@ -158,6 +172,8 @@ Just push it to GitHub
 → Connect it on Streamlit Cloud
 → Deploy
 → Done.
+
+
 
 🛡 Privacy & Safety
 
@@ -175,6 +191,8 @@ Anything to any database
 
 Everything lives inside your session only, and you download your own certificate.
 You own all your data.
+
+
 
 ❤️ Want to Support?
 
