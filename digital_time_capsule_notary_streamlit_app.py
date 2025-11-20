@@ -59,8 +59,7 @@ with tab1:
             st.session_state.kyc_verified = True
             st.session_state.user_id = user_name.strip()
             st.success(f"✅ Success! Identity '{user_name.strip()}' is now digitally verified and linked to your session. Proceed to Seal Document.")
-            # st.experimental_rerun() is kept for immediate state update/UI switch
-            st.experimental_rerun() 
+            # st.experimental_rerun() is removed as the button interaction already triggers a rerun.
         else:
             st.error("Please enter a name or ID to simulate verification.")
 
