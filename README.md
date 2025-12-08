@@ -198,7 +198,8 @@ our landing page
 <img width="1377" height="887" alt="landing" src="https://github.com/user-attachments/assets/3448f9af-e508-42fa-8aaf-814b89e32133" />
 
 this is our working diagram
-![Uploading ChatGPT Image Dec 8, 2025, 10_45_08 PM.png…]()
+<img width="1536" height="1024" alt="ChatGPT Image Dec 8, 2025, 10_45_08 PM" src="https://github.com/user-attachments/assets/50a96eaa-f5cd-4bed-98ed-9aec576244a8" />
+
 
 ❤️ Want to Support?
 
