@@ -1,31 +1,22 @@
-# app.py — Digital Notary (Stripe Pink→Purple→Indigo animated gradient + outline buttons + encrypted PDF)
 import streamlit as st
 import sqlite3
+from datetime import datetime
 import hashlib
-from datetime import datetime, date
-from typing import Optional, List, Tuple
-from fpdf import FPDF
-from pypdf import PdfReader, PdfWriter
-import io
+import os
 
-# ---------------------------
-# App & DB setup
-# ---------------------------
-st.set_page_config(page_title="Digital Notary — Premium", layout="centered")
-
-DB_FILE = "notary.db"
-
-def get_conn():
-    return sqlite3.connect(DB_FILE, check_same_thread=False)
+# ======================================================================
+# Database Setup
+# ======================================================================
+DB = "ledger.db"
 
 def init_db():
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("""
+    conn = sqlite3.connect(DB)
+    cur = conn.cursor()
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS documents (
             hash TEXT PRIMARY KEY,
             content TEXT,
-            user TEXT,
+            signer TEXT,
             seal_date TEXT,
             release_date TEXT
         )
@@ -33,401 +24,229 @@ def init_db():
     conn.commit()
     conn.close()
 
+def save_document(hash_id, content, signer, seal_date, release_date):
+    conn = sqlite3.connect(DB)
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO documents (hash, content, signer, seal_date, release_date)
+        VALUES (?, ?, ?, ?, ?)
+    """, (hash_id, content, signer, seal_date, release_date))
+    conn.commit()
+    conn.close()
+
+def fetch_document(hash_id):
+    conn = sqlite3.connect(DB)
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM documents WHERE hash=?", (hash_id,))
+    data = cur.fetchone()
+    conn.close()
+    return data
+
+# ======================================================================
+# Hash Helper
+# ======================================================================
+def sha256_hash(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()
+
+# ======================================================================
+# Internal PDF Generator (NO external libraries)
+# ======================================================================
+def generate_pdf(text, filename="document.pdf"):
+    path = os.path.join(os.getcwd(), filename)
+
+    # Escape parentheses (PDF text rule)
+    safe_text = text.replace("(", "\\(").replace(")", "\\)")
+
+    body = f"BT /F1 12 Tf 50 750 Td ({safe_text}) Tj ET"
+
+    pdf = f"""%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792]
+/Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >>
+>>
+endobj
+4 0 obj
+<< /Length {len(body)} >>
+stream
+{body}
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000010 00000 n 
+0000000061 00000 n 
+0000000116 00000 n 
+0000000273 00000 n 
+0000000460 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+560
+%%EOF
+"""
+
+    with open(path, "wb") as f:
+        f.write(pdf.encode("latin-1"))
+
+    return path
+
+# ======================================================================
+# Streamlit App Setup
+# ======================================================================
+st.set_page_config(page_title="Universal Verification Suite", layout="centered")
 init_db()
 
-# ---------------------------
-# Utility functions
-# ---------------------------
-def sha256_hash(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+PAGES = [
+    "Home",
+    "KYC Verification",
+    "Seal Document",
+    "Verify Document",
+    "Public Lookup"
+]
 
-def save_document(hash_val: str, content: str, user: str, release_iso: str) -> bool:
-    try:
-        conn = get_conn()
-        c = conn.cursor()
-        c.execute(
-            "INSERT OR REPLACE INTO documents (hash, content, user, seal_date, release_date) VALUES (?, ?, ?, ?, ?)",
-            (hash_val, content, user, datetime.now().isoformat(), release_iso)
-        )
-        conn.commit()
-        conn.close()
-        return True
-    except Exception as e:
-        st.error(f"DB save error: {e}")
-        return False
-
-def fetch_document(hash_val: str) -> Optional[Tuple]:
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("SELECT hash, content, user, seal_date, release_date FROM documents WHERE hash=?", (hash_val,))
-    row = c.fetchone()
-    conn.close()
-    return row
-
-def fetch_user_docs(user: str) -> List[Tuple]:
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("SELECT hash, seal_date, release_date, content FROM documents WHERE user=? ORDER BY seal_date DESC", (user,))
-    rows = c.fetchall()
-    conn.close()
-    return rows
-
-def list_recent(limit: int = 6) -> List[Tuple]:
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute("SELECT hash, user, seal_date, release_date FROM documents ORDER BY seal_date DESC LIMIT ?", (limit,))
-    rows = c.fetchall()
-    conn.close()
-    return rows
-
-# ---------------------------
-# Session defaults
-# ---------------------------
-if "user" not in st.session_state:
-    st.session_state.user = "Guest"
-if "kyc_done" not in st.session_state:
-    st.session_state.kyc_done = False
 if "page" not in st.session_state:
-    st.session_state.page = "KYC"
+    st.session_state.page = "Home"
 
-# ---------------------------
-# CSS: animated gradient (pink → purple → indigo), outline buttons, glass cards
-# ---------------------------
-st.markdown(
-    """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
+st.sidebar.title("Navigation")
+st.session_state.page = st.sidebar.radio("Go to", PAGES)
 
-    /* Animated gradient background */
-    :root {
-      --g1: #ff4db6;
-      --g2: #8b5cf6;
-      --g3: #5b21b6;
-    }
-    body {
-      background: linear-gradient(120deg, var(--g1), var(--g2), var(--g3));
-      background-size: 300% 300%;
-      animation: gradientShift 12s ease infinite;
-    }
-    @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
+# ======================================================================
+# HOME PAGE
+# ======================================================================
+if st.session_state.page == "Home":
+    st.title("🏛 Universal Verification Suite")
+    st.write("""
+    A simple platform for:
+    - KYC Identity Verification  
+    - Document Notary + Time Locks  
+    - Public Release Ledger  
+    """)
 
-    /* Hero (keeps text readable) */
-    .hero {
-        padding: 28px 18px;
-        border-radius: 12px;
-        color: white;
-        text-align: center;
-        margin-bottom: 18px;
-        background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
-        box-shadow: 0 12px 40px rgba(11,15,30,0.25);
-        border: 1px solid rgba(255,255,255,0.06);
-        backdrop-filter: blur(6px);
-    }
+# ======================================================================
+# KYC PAGE
+# ======================================================================
+elif st.session_state.page == "KYC Verification":
+    st.header("🧑‍💼 KYC Identity Verification")
 
-    /* Navigation row */
-    .nav-row { display:flex; justify-content:center; gap:10px; margin: 12px 0 18px 0; }
+    name = st.text_input("Full Name")
+    dob = st.date_input("Date of Birth")
+    country = st.text_input("Country")
+    id_number = st.text_input("Govt ID Number")
 
-    /* Outline nav buttons (white border, transparent) */
-    .stButton>button {
-        background: transparent !important;
-        color: white !important;
-        padding: 10px 18px !important;
-        border-radius: 8px !important;
-        border: 1px solid rgba(255,255,255,0.92) !important;
-        font-weight: 600 !important;
-        transition: transform 0.15s ease, background 0.15s ease !important;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.12) !important;
-        backdrop-filter: blur(4px) !important;
-    }
-    .stButton>button:hover {
-        transform: translateY(-3px) !important;
-        background: rgba(255,255,255,0.06) !important;
-    }
-
-    /* Glass card for content */
-    .card {
-        background: rgba(255,255,255,0.96);
-        border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 8px 28px rgba(8,10,20,0.06);
-        border: 1px solid rgba(16,24,40,0.03);
-        transition: transform 200ms ease, box-shadow 200ms ease;
-        color: #041227;
-    }
-    .card:hover { transform: translateY(-6px); box-shadow: 0 18px 48px rgba(8,10,20,0.10); }
-
-    .muted { color: rgba(4,18,39,0.6); font-size:13px; }
-
-    pre.code {
-        background: #0b1220;
-        color: #e6f2ff;
-        padding: 10px;
-        border-radius: 8px;
-        overflow-x: auto;
-    }
-
-    /* small screens: nav wrap */
-    @media (max-width: 640px) {
-        .nav-row { flex-wrap: wrap; gap:8px; }
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# ---------------------------
-# Header / hero
-# ---------------------------
-st.markdown(
-    """
-    <div class="hero">
-        <h1 style="margin:0">Digital Notary</h1>
-        <p style="margin:6px 0 0 0;">Seal • Time-lock • Verify — premium notarized certificates</p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-# ---------------------------
-# Top nav (outline buttons)
-# ---------------------------
-st.markdown("<div class='nav-row'>", unsafe_allow_html=True)
-cols = st.columns(5)
-with cols[0]:
-    if st.button("KYC", key="nav_kyc"):
-        st.session_state.page = "KYC"
-with cols[1]:
-    if st.button("Home", key="nav_home"):
-        st.session_state.page = "Home"
-with cols[2]:
-    if st.button("Seal", key="nav_seal"):
-        st.session_state.page = "Seal"
-with cols[3]:
-    if st.button("Verify", key="nav_verify"):
-        st.session_state.page = "Verify"
-with cols[4]:
-    if st.button("Profile", key="nav_profile"):
-        st.session_state.page = "Profile"
-st.markdown("</div>", unsafe_allow_html=True)
-
-# ---------------------------
-# PDF certificate creation + encryption (fpdf2 + pypdf)
-# ---------------------------
-def create_certificate_pdf_bytes(hash_val: str, content: str, user: str, seal_date: str, release_date: str) -> bytes:
-    """
-    Create a PDF certificate (in memory) using fpdf, then encrypt it with pypdf using hash_val as password.
-    Returns encrypted PDF bytes.
-    """
-    pdf = FPDF(orientation="P", unit="pt", format="A4")
-    pdf.set_auto_page_break(auto=True, margin=40)
-    pdf.add_page()
-
-    # Header band (dark)
-    w, h = 595.28, 841.89  # A4 in points
-    pdf.set_fill_color(220, 100, 200)  # accent - won't be visible as full gradient but gives stripe
-    pdf.rect(0, 0, w, 120, 'F')
-    pdf.set_xy(40, 40)
-    pdf.set_text_color(255,255,255)
-    pdf.set_font("Helvetica", style="B", size=20)
-    pdf.cell(0, 10, "Digital Notary — Sealed Certificate", ln=True)
-    pdf.set_font("Helvetica", size=11)
-    pdf.ln(6)
-    pdf.set_text_color(255,255,255)
-    pdf.cell(0, 10, "Premium notarized certificate", ln=True)
-
-    # Body
-    pdf.set_text_color(10,10,10)
-    pdf.ln(22)
-    pdf.set_x(40)
-    pdf.set_font("Helvetica", size=12)
-    pdf.multi_cell(0, 16, f"Sealed By: {user}")
-    pdf.multi_cell(0, 16, f"Seal Date: {seal_date}")
-    pdf.multi_cell(0, 16, f"Release Date: {release_date}")
-    pdf.ln(8)
-    pdf.set_font("Helvetica", style="B", size=11)
-    pdf.cell(0, 14, "Document SHA-256 Fingerprint:")
-    pdf.ln(6)
-    pdf.set_font("Courier", size=9)
-    for i in range(0, len(hash_val), 64):
-        pdf.cell(0, 12, hash_val[i:i+64], ln=True)
-
-    pdf.ln(12)
-    pdf.set_font("Helvetica", style="B", size=11)
-    pdf.cell(0, 14, "Document Preview")
-    pdf.ln(6)
-    pdf.set_font("Helvetica", size=10)
-    preview = content.strip()
-    if len(preview) > 1000:
-        preview = preview[:1000] + "..."
-    pdf.multi_cell(0, 12, preview)
-
-    pdf.set_y(h - 120)
-    pdf.set_font("Helvetica", size=9)
-    pdf.cell(0, 10, "Digital Notary • Electronically generated certificate", ln=True)
-
-    # get bytes
-    pdf_bytes_str = pdf.output(dest='S')
-    if isinstance(pdf_bytes_str, str):
-        pdf_bytes = pdf_bytes_str.encode('latin-1')
-    else:
-        pdf_bytes = pdf_bytes_str
-
-    # encrypt with pypdf
-    reader = PdfReader(io.BytesIO(pdf_bytes))
-    writer = PdfWriter()
-    for p in reader.pages:
-        writer.add_page(p)
-    writer.encrypt(user_password=hash_val, owner_password=hash_val, use_128bit=True)
-
-    out = io.BytesIO()
-    writer.write(out)
-    out.seek(0)
-    return out.read()
-
-# ---------------------------
-# Render card helper
-# ---------------------------
-def render_card(title: str, fn):
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-    if title:
-        st.subheader(title)
-    fn()
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.write("")
-
-# ---------------------------
-# Pages
-# ---------------------------
-
-# KYC
-if st.session_state.page == "KYC":
-    def kyc_fn():
-        st.write("Verify your identity (simple demo KYC).")
-        name = st.text_input("Full name", value=st.session_state.user, key="kyc_name")
-        if st.button("Verify Identity", key="kyc_verify"):
-            if name.strip():
-                st.session_state.user = name.strip()
-                st.session_state.kyc_done = True
-                st.success(f"Identity verified: {st.session_state.user}")
-            else:
-                st.error("Enter a valid name.")
-        if st.session_state.get("kyc_done"):
-            st.info(f"Verified user: **{st.session_state.user}**")
-    render_card("🪪 Identity Verification (KYC)", kyc_fn)
-
-# Home
-elif st.session_state.page == "Home":
-    def home_fn():
-        st.write("Recent sealed documents (latest first).")
-        rows = list_recent(6)
-        if not rows:
-            st.info("No sealed documents yet.")
+    if st.button("Verify Identity", key="kyc_verify"):
+        if not name or not country or not id_number:
+            st.error("All fields required.")
         else:
-            for h, user, seal_date, release_date in rows:
-                st.markdown("<div class='card' style='padding:12px; margin-bottom:10px;'>", unsafe_allow_html=True)
-                st.write(f"**Hash:** `{h[:32]}...`")
-                st.write(f"Sealed by **{user}** on {datetime.fromisoformat(seal_date).strftime('%b %d, %Y')}")
-                st.write(f"<span class='muted'>Release: {datetime.fromisoformat(release_date).strftime('%b %d, %Y')}</span>", unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
-    render_card("🏠 Recent Seals", home_fn)
+            st.success("Identity Verified Successfully")
+            st.json({
+                "name": name,
+                "dob": str(dob),
+                "country": country,
+                "id": id_number
+            })
 
-# Seal
-elif st.session_state.page == "Seal":
-    def seal_fn():
-        if not st.session_state.get("kyc_done", False):
-            st.warning("Please complete KYC before sealing documents.")
-            return
-        content = st.text_area("Paste the exact document text to seal", height=220, key="seal_text")
-        release = st.date_input("Release (unlock) date", min_value=date.today(), key="seal_release")
-        if st.button("Generate Hash & Seal", key="do_seal"):
-            if not content.strip():
-                st.error("Document content cannot be empty.")
-                return
-            if release <= date.today():
-                st.error("Release date must be in the future.")
-                return
-            h = sha256_hash(content)
-            ok = save_document(h, content, st.session_state.user, release.isoformat())
-            if ok:
-                st.success("Document sealed successfully.")
-                st.markdown(f"<pre class='muted'>{h}</pre>", unsafe_allow_html=True)
-    render_card("🔏 Seal Document", seal_fn)
+# ======================================================================
+# SEAL DOCUMENT PAGE
+# ======================================================================
+elif st.session_state.page == "Seal Document":
+    st.header("📝 Seal a Document")
 
-# Verify
-elif st.session_state.page == "Verify":
-    def verify_fn():
-        st.write("Provide the notarized hash and the original text to verify integrity.")
-        hash_in = st.text_input("Notarized Hash ID", key="verify_hash")
-        doc_text = st.text_area("Paste Document Text", height=200, key="verify_text")
-        if st.button("Verify Document", key="verify_btn"):
-            if not hash_in or not doc_text:
-                st.error("Provide both Hash ID and document text.")
-                return
-            rec = fetch_document(hash_in)
-            if not rec:
-                st.error("Hash not found in ledger.")
-                return
-            _hash, stored_content, signer, seal_date, release_date = rec
-            # time-lock check
-            try:
-                rel_dt = datetime.fromisoformat(release_date)
-            except Exception:
-                st.error("Stored release date format error.")
-                return
-            if datetime.now() < rel_dt:
-                st.warning(f"🔒 Time-lock active until {rel_dt.strftime('%B %d, %Y')}")
-                return
-            # integrity check
-            cur_h = sha256_hash(doc_text)
-            if cur_h == hash_in:
-                st.success(f"🟢 VERIFIED — sealed by **{signer}** on {datetime.fromisoformat(seal_date).strftime('%b %d, %Y %I:%M %p')}")
+    signer = st.text_input("Signer Name")
+    content = st.text_area("Document Content", height=200)
+    release_date = st.date_input("Release Date")
+
+    if st.button("Seal Document", key="seal_doc"):
+        if not signer or not content:
+            st.error("All fields required.")
+        else:
+            hash_id = sha256_hash(content)
+            seal_dt = datetime.now().isoformat()
+
+            save_document(hash_id, content, signer, seal_dt, str(release_date))
+
+            st.success("Document sealed successfully!")
+            st.code(hash_id)
+
+# ======================================================================
+# VERIFY DOCUMENT PAGE
+# ======================================================================
+elif st.session_state.page == "Verify Document":
+    st.header("🔎 Verify a Document")
+
+    hash_in = st.text_input("Document Hash")
+    doc_text = st.text_area("Paste Original Document (optional)", height=200)
+
+    if st.button("Verify Document", key="verify_document"):
+        rec = fetch_document(hash_in)
+
+        if not rec:
+            st.error("Hash Not Found")
+        else:
+            _hash, stored, signer, seal_date, release_date = rec
+            release_dt = datetime.fromisoformat(release_date)
+
+            if datetime.now() < release_dt:
+                st.warning(f"🔒 Locked until {release_dt.strftime('%B %d, %Y')}")
             else:
-                st.error("🔴 FAILED — Document content does not match the sealed fingerprint.")
-    render_card("🔎 Verify Document", verify_fn)
+                st.success(f"Document Released — Signed by {signer}")
 
-# Profile
-elif st.session_state.page == "Profile":
-    def profile_fn():
-        if not st.session_state.get("kyc_done", False):
-            st.warning("Complete KYC to view your documents.")
-            return
-        user = st.session_state.user
-        docs = fetch_user_docs(user)
-        if not docs:
-            st.info("You have not sealed any documents yet.")
-            return
-        st.write(f"Showing {len(docs)} sealed document(s) for **{user}**.")
-        for h, seal_date, release_date, content in docs:
-            st.markdown("<div style='padding:12px;border-radius:8px;margin-bottom:12px;background:rgba(255,255,255,0.96)'>", unsafe_allow_html=True)
-            st.write(f"**Hash:** `{h}`")
-            st.write(f"Sealed on: {datetime.fromisoformat(seal_date).strftime('%b %d, %Y %I:%M %p')}")
-            st.write(f"Release date: {datetime.fromisoformat(release_date).strftime('%b %d, %Y')}")
-            try:
-                locked = datetime.now() < datetime.fromisoformat(release_date)
-            except Exception:
-                locked = False
-            if locked:
-                st.info("⏳ This document is still locked — content will be visible after the release date.")
+                st.text_area("Stored Document", stored, height=200)
+
+                pdf_path = generate_pdf(stored, f"{hash_in}.pdf")
+                with open(pdf_path, "rb") as f:
+                    st.download_button(
+                        "⬇ Download PDF",
+                        f,
+                        file_name=f"{hash_in}.pdf",
+                        mime="application/pdf"
+                    )
+
+                if doc_text.strip():
+                    if sha256_hash(doc_text) == hash_in:
+                        st.info("✔ Document integrity verified")
+                    else:
+                        st.error("❌ Document mismatch")
+
+# ======================================================================
+# PUBLIC LOOKUP PAGE
+# ======================================================================
+elif st.session_state.page == "Public Lookup":
+    st.header("🌍 Public Document Lookup")
+
+    hash_in = st.text_input("Enter Document Hash")
+
+    if st.button("Search", key="lookup_search"):
+        rec = fetch_document(hash_in)
+
+        if not rec:
+            st.error("Hash Not Found")
+        else:
+            _hash, stored, signer, seal_date, release_date = rec
+            release_dt = datetime.fromisoformat(release_date)
+
+            if datetime.now() < release_dt:
+                st.warning(f"🔒 Locked until {release_dt.strftime('%B %d, %Y')}")
             else:
-                if st.checkbox(f"Show content ({h[:10]}...)", key=f"show_{h[:10]}"):
-                    st.text_area("Original Document", content, height=180)
-                    # PDF download generation
-                    if st.button(f"Download Certificate ({h[:10]})", key=f"cert_{h[:10]}"):
-                        pdf_bytes = create_certificate_pdf_bytes(h, content, user, seal_date, release_date)
-                        st.download_button(
-                            label="Download Encrypted PDF Certificate (password = hash)",
-                            data=pdf_bytes,
-                            file_name=f"certificate_{h[:10]}.pdf",
-                            mime="application/pdf"
-                        )
-            st.markdown("</div>", unsafe_allow_html=True)
-    render_card("👤 Profile — Your Sealed Documents", profile_fn)
+                st.success(f"Released — Signed by {signer}")
 
-# Footer
-st.write("")
-st.markdown("<div class='muted' style='text-align:center;'>© {year} Digital Notary</div>".format(year=datetime.now().year), unsafe_allow_html=True)
+                st.text_area("Document Content", stored, height=200)
+
+                pdf_path = generate_pdf(stored, f"{hash_in}.pdf")
+                with open(pdf_path, "rb") as f:
+                    st.download_button(
+                        "⬇ Download PDF",
+                        f,
+                        file_name=f"{hash_in}.pdf",
+                        mime="application/pdf"
+                    )
+
