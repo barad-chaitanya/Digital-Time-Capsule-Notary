@@ -103,7 +103,7 @@ startxref
 # ======================================================================
 # Streamlit App Setup
 # ======================================================================
-st.set_page_config(page_title="Universal Verification Suite", layout="centered")
+st.set_page_config(page_title="Digital Time Capsule", layout="centered")
 init_db()
 
 PAGES = [
