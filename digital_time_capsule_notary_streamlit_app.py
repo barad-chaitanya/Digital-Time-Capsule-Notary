@@ -124,7 +124,7 @@ st.session_state.page = st.sidebar.radio("Go to", PAGES)
 # HOME PAGE
 # ======================================================================
 if st.session_state.page == "Home":
-    st.title("🏛 Universal Verification Suite")
+    st.title("🏛 Digital Time Notary")
     st.write("""
     A simple platform for:
     - KYC Identity Verification  
